@@ -428,6 +428,203 @@ Server <- function(input, output) {
   
   ##########--------------------| Tracking  --------------------##########
   
+  #---------- |-| Reactive Functions --------------------
+  
+  # |--| Chronological Recorded Summary Data frame --------------------
+  chronSummary <- reactive({
+    
+    cSumm <- cSummary %>% 
+      filter(Name == input$chronFilter) %>%
+      select(Date, cDate, Meter, Times, Splits, Velocity, pSprint)
+    
+    return(cSumm)
+    
+  })
+
+  # |--| Chronological Daily Output Summary Data frame --------------------
+  chronOutputs <- reactive({
+    req(input$chronFilter)
+    
+    out <- cOutputs %>%
+      filter(Name == input$chronFilter)
+    
+    return(out)
+  })
+  
+  # |--| Rep Models by Date Data frame --------------------
+  chronModel <- reactive({
+    
+    m <- cModel %>% 
+      filter(Name == input$chronFilter) 
+    
+    return(m)
+  })
+  
+  # |--| Week selection filter --------------------
+  chronWeek <- reactive({
+    input$chronWeekFilter
+  })
+
+  
+  #---------- |-| Plots --------------------
+  
+  # |---| Peak Velocity --------------------
+  output$chronV0 <- renderEcharts4rBox({
+    co <- chronOutputs()
+    co1 <- co %>%
+      select(Date, v0) %>%
+      mutate("WeekNo" = as.numeric(week(Date)), "vScale" = scale_this(v0))
+    
+    w <- chronWeek()
+    wselect <- co1 %>% filter(WeekNo == w)
+    n <- round(wselect$vScale[1],2)
+    
+    bcolor <- if (n < -0.5 ) {
+      "#e48981"
+    } else if(n > 0.5) {
+      "#84cc33"
+    } else {"#f1f3f5"}
+    
+    tcolor <- if (n < -0.5 ) {
+      "#ffffff"
+    } else if(n > 0.5) {
+      "#ffffff"
+    } else {"#121212"}
+    
+    echarts4rBox(
+      data = co1,
+      x = WeekNo,
+      y = vScale,
+      type = "bar",
+      step = "middle",
+      text = paste0(round(wselect$v0[1],2), "m/s"),
+      subtext = "v0",
+      background_color = bcolor,
+      color = tcolor,
+      text_color = tcolor
+    )
+  })
+  
+  # |---| Peak Force --------------------
+  output$chronF0 <- renderEcharts4rBox({
+    fo <- chronOutputs()
+    fo1 <- fo %>%
+      select(Date, f0) %>%
+      mutate("WeekNo" = as.numeric(week(Date)), "fScale" = scale_this(f0))
+    
+    w <- chronWeek()
+    wselect <- fo1 %>% filter(WeekNo == w)
+    n <- wselect$fScale[1]
+    
+    bcolor <- if (n < -0.5 ) {
+      "#e48981"
+    } else if(n > 0.5) {
+      "#84cc33"
+    } else {"#f1f3f5"}
+    
+    tcolor <- if (n < -0.5 ) {
+      "#ffffff"
+    } else if(n > 0.5) {
+      "#ffffff"
+    } else {"#121212"}
+    
+    echarts4rBox(
+      data = fo1,
+      x = WeekNo,
+      y = fScale,
+      type = "area",
+      step = "middle",
+      text = paste0(round(wselect$f0[1],1), "N/kg"),
+      subtext = "f0",
+      color = tcolor,
+      background_color = bcolor,
+      text_color = tcolor
+    )
+  })
+  
+  # |---| Sprint Momentum --------------------
+  output$chronP <- renderEcharts4rBox({
+    p <- chronSummary()
+    p1 <- p %>%
+      filter(Meter == 5) %>%
+      select(Date, pSprint) %>%
+      mutate("WeekNo" = as.numeric(week(Date)), "pScale" = scale_this(pSprint))
+      
+    
+    w <- chronWeek()
+    wselect <- p1 %>% filter(WeekNo == w)
+    n <- wselect$pScale[1]
+    
+    bcolor <- if (n < -0.5 ) {
+      "#e48981"
+    } else if(n > 0.5) {
+      "#84cc33"
+    } else {"#f1f3f5"}
+    
+    tcolor <- if (n < -0.5 ) {
+      "#ffffff"
+    } else if(n > 0.5) {
+      "#ffffff"
+    } else {"#121212"}
+    
+    echarts4rBox(
+      data = p1,
+      x = WeekNo,
+      y = pScale,
+      type = "bar",
+      step = "middle",
+      text = wselect$pSprint[1],
+      subtext = "sMomentum",
+      color = tcolor,
+      background_color = bcolor,
+      text_color = tcolor
+    )
+  })
+  
+  # |---| Relative Power --------------------
+  output$chronpHRZ <- renderEcharts4r({
+    df <- chronModel() 
+    z <- chronWeek()
+    wselect <- as.character(paste0("w", z))
+    peakP <- round(max(df$pHRZ_rel),1)
+    
+    df1 <- df %>% 
+      mutate("WeekNo" = paste0("w",as.character(week(Date)))) %>%
+      select(WeekNo, time, pHRZ_rel) %>% 
+      pivot_wider(names_from = WeekNo, values_from = pHRZ_rel) %>%
+      mutate("Hist" = (w2+w3+w4+w5+w6+w7+w8+w9+w10)/9) %>%
+      select(time, wselect, Hist)
+    
+    colnames(df1) <- c("time", "selected", "avg")
+    
+    df1 |>
+      e_charts(time) |>
+      e_scatter(selected) |>
+      e_area(avg) |>
+      e_legend(show = TRUE, 
+               left = "right", 
+               orient = "horizontal", 
+               align = "right"
+               ) |>
+      e_mark_line(data = list(yAxis = peakP), 
+                  title = paste0(peakP,"W/kg"), 
+                  title_position = "end",
+                  symbol = "none"
+                  ) |>
+      e_y_axis(name = "W/kg",
+              nameLocation = "end",
+               min = 10,
+               max = 30,
+               margin = 5,
+               minorTick = list(show = TRUE, splitNumber = 1)
+              ) |>
+      e_tooltip(trigger = "item",
+                axisPointer = list(
+                  type = "cross"
+                ))
+      
+
+  })
   
   
   ##########--------------------| Comparisons  --------------------##########

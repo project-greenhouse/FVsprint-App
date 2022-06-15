@@ -53,7 +53,6 @@ body <- dashboardBody(
                        multiple = FALSE
                      )
                    )
-                   
                  ),
                  # |----| Row 2: Rep Summary Table -------------------- 
                  fluidRow(
@@ -146,59 +145,43 @@ body <- dashboardBody(
     tabItem(
       tabName = "tabTracking",
       fluidRow(
+        # |--| Athlete Filter --------------------
         box(
-          title = "Placeholder"
+          background = "black",
+          width = 2,
+          height = 200,
+          selectInput(
+            inputId = "chronFilter",
+            label = p(strong("Athlete: ")),
+            choices = distinct(cModel, Name),
+            multiple = FALSE
+          ),
+          selectInput(
+            inputId = "chronWeekFilter",
+            label = p(strong("Week No: ")),
+            choices = c(2:10),
+            multiple = FALSE
+          )
+        ),
+        box(
+          background = "black",
+          width = 4,
+          height = 200,
+          echarts4rBoxOutput("chronV0", height = 75),
+          echarts4rBoxOutput("chronF0", height = 75)
+        ),
+        box(
+          background = "black",
+          width = 4,
+          height = 200,
+          echarts4rBoxOutput("chronP", height = 75)
         )
       ),
       fluidRow(
-        #height = 800,
-        column(
-          width = 6,
-          # First Row of Plots
-          fluidRow(
-            #Time-Pos-Velocity
-            box(
-              title = "Time | Pos | Velocity"
-            ),
-            # Horizontal Force
-            box(
-              title = "Horizontal Force"
-            )
-          ),
-          fluidRow(
-            #Time-Pos-Velocity
-            box(
-              title = "Time | Pos | Velocity"
-            ),
-            # Horizontal Force
-            box(
-              title = "Horizontal Force"
-            )
-          )
-        ),
-        column(
-          width = 6,
-          # First Row of Plots
-          fluidRow(
-            #Time-Pos-Velocity
-            box(
-              title = "Time | Pos | Velocity"
-            ),
-            # Horizontal Force
-            box(
-              title = "Horizontal Force"
-            )
-          ),
-          fluidRow(
-            #Time-Pos-Velocity
-            box(
-              title = "Time | Pos | Velocity"
-            ),
-            # Horizontal Force
-            box(
-              title = "Horizontal Force"
-            )
-          )
+        box(
+          width = 4,
+          #background = "black",
+          echarts4rOutput("chronpHRZ", height = "225px")
         )
       )
     ),

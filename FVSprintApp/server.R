@@ -626,6 +626,74 @@ Server <- function(input, output) {
 
   })
   
+  # |---| Relative Power --------------------
+  output$guagePower <- renderEcharts4r({
+    p <- chronSummary()
+    p1 <- p %>%
+      filter(Meter == 5) %>%
+      select(Date, pSprint) %>%
+      mutate("WeekNo" = as.numeric(week(Date)), "pScale" = scale_this(pSprint))
+    
+    
+    w <- chronWeek()
+    wselect <- p1 %>% filter(WeekNo == w)
+    gp <- wselect$pScale[1]
+    
+    bcolor <- if (gp < -0.5 ) {
+      "#e48981"
+    } else if(gp > 0.5) {
+      "#84cc33"
+    } else {"#f1f3f5"}
+    
+    guage <- e_charts() |>
+      e_gauge(value = gp,
+              max = 3,
+              min = -3,
+              splitNumber = 1,
+              startAngle = 180,
+              endAngle = 0) |>
+      e_title ("Sprint Momentum")
+    
+    guage
+    
+    #title = list(show = FALSE),
+    #detail = list(fontSize = 20,
+    #color = bcolor),
+    #axisLine = list(roundCap = TRUE,
+    #lineStyle = list(color = bcolor)),
+  })
+  
+  # |---| Relative Power --------------------
+  output$ChronBox <- renderEcharts4r({
+    p <- chronOutputs()
+    
+    w <- chronWeek()
+    
+    df1 <- p %>% 
+      transmute("WeekNo" = as.numeric(week(Date)),
+                "pScale" = scale_this(pMax),
+                "selected" = "all"
+                ) %>%
+      filter(WeekNo != w)
+    
+    df2 <- p %>% 
+      transmute("WeekNo" = as.numeric(week(Date)),
+                "pScale" = scale_this(pMax),
+                "selected" = paste0("Week ",w)
+      ) %>%
+      filter(WeekNo == w)
+    
+    plot <- bind_rows(df1,df2)
+ 
+    
+    plot |>
+      group_by(selected) |>
+      e_charts(WeekNo) |>
+      #e_radar(Avg, min = -3, max = 3, name = "Norm") |>
+      e_bar(pScale, max = 2, min = -2)
+      
+  })
+  
   
   ##########--------------------| Comparisons  --------------------##########
   

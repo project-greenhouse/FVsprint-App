@@ -181,7 +181,8 @@ body <- dashboardBody(
         box(
           width = 4,
           #background = "black",
-          echarts4rOutput("chronpHRZ", height = "225px")
+          echarts4rOutput("chronpHRZ", height = "225px"),
+          echarts4rOutput("ChronBox", height = "200px")
         )
       )
     ),
